@@ -1,0 +1,49 @@
+:root {
+  color-scheme: light;
+  font-family: "Space Grotesk", "Noto Sans JP", "Noto Sans TC", sans-serif;
+
+  --color-mineral: #eeeae0;
+  --color-paper: #f7f4ec;
+  --color-graphite: #17191a;
+  --color-strata: #b9b2a5;
+  --color-algae: #536a55;
+  --color-oxidized-blue: #4f6b78;
+  --color-fossil: #94613a;
+  --color-signal: #ad4938;
+
+  --color-bg: var(--color-mineral);
+  --color-surface: var(--color-paper);
+  --color-text: var(--color-graphite);
+  --color-text-muted: #53554f;
+  --color-line: #a9a294;
+  --color-line-soft: rgb(60 56 48 / 18%);
+  --color-line-strong: #766f63;
+  --color-accent: var(--color-algae);
+  --color-accent-soft: rgb(83 106 85 / 11%);
+  --color-warning: #875c2e;
+  --color-error: var(--color-signal);
+  --color-disabled: #67645d;
+
+  --viewer-canvas-inset: 20px;
+  --viewer-grid-size: 24px;
+  --viewer-grid-major-size: 96px;
+
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --space-1: 0.35rem;
+  --space-2: 0.65rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+
+  --font-display: "Space Grotesk", "Noto Sans JP", "Noto Sans TC", sans-serif;
+  --font-body: "Noto Sans JP", "Noto Sans TC", "Space Grotesk", sans-serif;
+  --font-mono: "Space Grotesk", "Noto Sans JP", "Noto Sans TC", monospace;
+
+  --transition-fast: 140ms ease;
+}
+
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
