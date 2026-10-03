@@ -11,7 +11,7 @@ const formatNumber = (value: number): string => {
 
 export const serializeVerticalSvg = (
   layout: VerticalLayoutResult,
-  fill = "#000000",
+  fill = "#000000"
 ): string => {
   if (!/^#[\da-fA-F]{6}$/.test(fill)) {
     throw new TypeError("fill must be a six-digit hex color.");

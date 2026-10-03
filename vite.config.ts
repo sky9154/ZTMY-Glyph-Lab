@@ -3,9 +3,14 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 
 
-const stylesDirectory = fileURLToPath(
-  new URL("./src/styles", import.meta.url)
+const sourceDirectory = fileURLToPath(new URL("./src", import.meta.url));
+const appDirectory = fileURLToPath(new URL("./src/app", import.meta.url));
+const componentsDirectory = fileURLToPath(
+  new URL("./src/app/components", import.meta.url)
 );
+const coreDirectory = fileURLToPath(new URL("./src/core", import.meta.url));
+const hooksDirectory = fileURLToPath(new URL("./src/hooks", import.meta.url));
+const stylesDirectory = fileURLToPath(new URL("./src/styles", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
@@ -16,7 +21,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@styles": stylesDirectory
+      "@app": appDirectory,
+      "@components": componentsDirectory,
+      "@core": coreDirectory,
+      "@hooks": hooksDirectory,
+      "@styles": stylesDirectory,
+      "@": sourceDirectory
     }
   }
 });

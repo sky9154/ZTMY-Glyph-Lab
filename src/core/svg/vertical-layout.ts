@@ -31,7 +31,7 @@ export const DEFAULT_VERTICAL_OPTIONS: Readonly<VerticalLayoutOptions> = Object.
 export const createVerticalLayout = (
   text: string,
   font: FontAdapter,
-  options: VerticalLayoutOptions = DEFAULT_VERTICAL_OPTIONS,
+  options: VerticalLayoutOptions = DEFAULT_VERTICAL_OPTIONS
 ): VerticalLayoutResult | null => {
   const { letterSpacing, padding } = options;
 

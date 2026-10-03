@@ -22,7 +22,7 @@ export interface HorizontalLayoutResult {
 export const createHorizontalLayout = (
   text: string,
   font: FontAdapter,
-  options: VerticalLayoutOptions,
+  options: VerticalLayoutOptions
 ): HorizontalLayoutResult | null => {
   const { letterSpacing, padding } = options;
 

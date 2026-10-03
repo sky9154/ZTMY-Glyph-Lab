@@ -3,7 +3,7 @@ import {
   createFontLoadError,
   type FontAdapter,
   type GlyphBounds,
-  type GlyphData,
+  type GlyphData
 } from "@core/font/font-adapter";
 
 export const DEFAULT_TEXT = "ずとまよ";
@@ -163,7 +163,7 @@ const checkFile = (file: File): void => {
 export const loadFontFile = async (
   file: File,
   parse: (buffer: ArrayBuffer) => OpenTypeFont = parseOpenType,
-  fingerprint: FontFingerprint = fingerprintFont,
+  fingerprint: FontFingerprint = fingerprintFont
 ): Promise<FontAdapter> => {
   checkFile(file);
 
@@ -187,7 +187,7 @@ export const loadFontFile = async (
   if (!hasZtmyMetadata(parsed)) {
     throw createFontLoadError(
       "wrong-font",
-      "The font metadata does not identify the required ZTMY_MOJI-R family.",
+      "The font metadata does not identify the required ZTMY_MOJI-R family."
     );
   }
 

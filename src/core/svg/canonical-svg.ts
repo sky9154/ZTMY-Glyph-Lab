@@ -19,7 +19,7 @@ export type SvgDocumentState =
 export const createCanonicalSvg = (
   text: string,
   font: FontAdapter | null,
-  options: CanonicalSvgOptions,
+  options: CanonicalSvgOptions
 ): SvgDocumentState => {
   if (!font || text.length === 0) {
     return { status: "unavailable", svg: null };
@@ -80,6 +80,6 @@ export const exportCanonicalSvg = (svg: string, filename: string): void => {
     link.download = sanitizeSvgFilename(filename);
     link.click();
   } finally {
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 }
