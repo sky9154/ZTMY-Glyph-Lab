@@ -14,7 +14,7 @@ const stylesDirectory = fileURLToPath(new URL("./src/styles", import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.GITHUB_PAGES === "true" ? "/ZTMY-Glyph-Lab/" : "/",
+  base: process.env.GITHUB_PAGES === "true" ? "./" : "/",
   test: {
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}"],
