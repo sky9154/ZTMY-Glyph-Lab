@@ -1,5 +1,3 @@
-import { motion } from "motion/react";
-
 import type { ConceptualRule } from "@core/ztmy/kana-metadata";
 import { inspectCell, summarizeGlyphCells, type LayoutCell } from "@core/svg/glyph-inspector";
 import type { Orientation } from "@core/svg/canonical-svg";
@@ -68,29 +66,25 @@ export const GlyphInspector = ({
     : "—";
   const hasSelectableCells = isFontReady && cells.length > 0;
   const selectionMessage = isFontReady
-    ? "No character cells in this record."
-    : "Load the local font to select a character cell.";
+    ? "Enter text to inspect glyphs."
+    : "Load the ZTMY_MOJI-R OTF to inspect glyphs.";
 
   return (
-    <motion.aside
+    <aside
       className="specimen-record"
-      aria-label="07 / GLYPH inspection and specimen record"
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, delay: 0.07, ease: "easeOut" }}
+      aria-label="Glyph inspection and specimen record"
     >
       <div className="record-heading">
         <div>
           <p className="eyebrow">RECORD / INSPECTION</p>
-          <h2>07 / GLYPH</h2>
+          <h2>GLYPH</h2>
         </div>
-        <span className="record-number">R—01</span>
       </div>
 
       <section className="glyph-inspection" aria-labelledby="glyph-heading">
         <div className="glyph-inspection-heading">
           <h3 id="glyph-heading">Glyph selection</h3>
-          <span>SELECT / INSPECT</span>
+          <span>Select a cell to inspect</span>
         </div>
         {!hasSelectableCells ? (
           <p className="quiet-note">{selectionMessage}</p>
@@ -115,16 +109,8 @@ export const GlyphInspector = ({
                   aria-label={"Cell " + (index + 1) + ": " + cell.char}
                   onClick={() => onSelectCell(index)}
                 >
-                  {cell.char}
+                  <span className="cell-character">{cell.char}</span>
                   <span className="cell-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                  {activeIndex === index && (
-                    <motion.span
-                      className="glyph-selection-marker"
-                      layoutId="glyph-selection-marker"
-                      transition={{ type: "spring", stiffness: 500, damping: 42, bounce: 0 }}
-                      aria-hidden="true"
-                    />
-                  )}
                 </button>
               ))}
             </div>
@@ -137,15 +123,9 @@ export const GlyphInspector = ({
           <div className="specimen-identity">
             <span className="record-field-label">SPECIMEN RECORD</span>
             <div className="specimen-identity-line">
-              <motion.strong
-                key={inspection.cellIndex}
-                className="specimen-character"
-                initial={{ opacity: 0, y: 2 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.16, ease: "easeOut" }}
-              >
+              <strong className="specimen-character">
                 {inspection.character}
-              </motion.strong>
+              </strong>
               <span className="specimen-index">{String(inspection.cellIndex + 1).padStart(2, "0")}</span>
             </div>
           </div>
@@ -190,10 +170,10 @@ export const GlyphInspector = ({
       ) : (
         <div className="record-empty">
           <span className="record-empty-mark" aria-hidden="true">+</span>
-          <p>Load the font to build a record for the selected glyph.</p>
+          <p>No glyph selected.</p>
           <span>UNICODE / BOUNDS / KANA DATA</span>
         </div>
       )}
-    </motion.aside>
+    </aside>
   );
 };

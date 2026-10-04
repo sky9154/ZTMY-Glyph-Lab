@@ -1,4 +1,6 @@
 import type { FontAdapter, GlyphData } from "@core/font/font-adapter";
+import { DEFAULT_LAYOUT_SETTINGS } from "@core/svg/layout-settings";
+import { validateLayoutDimensions, validateLayoutOptions } from "@core/svg/layout-utils";
 
 
 export interface VerticalLayoutOptions {
@@ -24,8 +26,8 @@ export interface VerticalLayoutResult {
 }
 
 export const DEFAULT_VERTICAL_OPTIONS: Readonly<VerticalLayoutOptions> = Object.freeze({
-  letterSpacing: 160,
-  padding: 20
+  letterSpacing: DEFAULT_LAYOUT_SETTINGS.letterSpacing,
+  padding: DEFAULT_LAYOUT_SETTINGS.padding
 });
 
 export const createVerticalLayout = (
@@ -33,15 +35,8 @@ export const createVerticalLayout = (
   font: FontAdapter,
   options: VerticalLayoutOptions = DEFAULT_VERTICAL_OPTIONS
 ): VerticalLayoutResult | null => {
+  validateLayoutOptions(font.unitsPerEm, options);
   const { letterSpacing, padding } = options;
-
-  if (!Number.isFinite(font.unitsPerEm) || font.unitsPerEm <= 0) {
-    throw new RangeError("unitsPerEm must be a positive finite number.");
-  }
-
-  if (!Number.isFinite(letterSpacing) || !Number.isFinite(padding)) {
-    throw new RangeError("letterSpacing and padding must be finite numbers.");
-  }
 
   const cellSize = font.unitsPerEm;
   const glyphs: PositionedGlyph[] = [];
@@ -78,11 +73,15 @@ export const createVerticalLayout = (
     return null;
   }
 
+  const width = cellSize + padding * 2;
+  const height = rowCount * cellSize + Math.max(0, rowCount - 1) * letterSpacing + padding * 2;
+  validateLayoutDimensions(width, height);
+
   return {
-    width: cellSize + padding * 2,
-    height: rowCount * cellSize + Math.max(0, rowCount - 1) * letterSpacing + padding * 2,
+    width,
+    height,
     rowCount,
     cellSize,
     glyphs
   };
-}
+};

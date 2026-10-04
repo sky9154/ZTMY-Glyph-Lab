@@ -6,7 +6,7 @@ interface TextSectionProps {
 export const TextSection = ({ text, onTextChange }: TextSectionProps) => {
   return (
     <section className="panel-section" aria-labelledby="text-heading">
-      <h2 id="text-heading">01 / TEXT</h2>
+      <h2 id="text-heading">TEXT</h2>
       <label className="field-label" htmlFor="source-text">Source text</label>
       <textarea
         id="source-text"

@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
-import { motion } from "motion/react";
+import { useMemo, useReducer, useState } from "react";
 
 import { DEFAULT_TEXT } from "@core/font/opentype-font";
-import { copyCanonicalSvg, createCanonicalSvg, exportCanonicalSvg, type Orientation } from "@core/svg/canonical-svg";
+import {
+  copyCanonicalSvg,
+  createCanonicalSvg,
+  exportCanonicalSvg,
+  getSvgUnavailableMessage
+} from "@core/svg/canonical-svg";
 import { getLayoutCells } from "@core/svg/glyph-inspector";
-import { DEFAULT_VERTICAL_OPTIONS } from "@core/svg/vertical-layout";
+import { INITIAL_LAYOUT_SETTINGS_STATE, hasResettableLayoutSettings, reduceLayoutSettings } from "@app/layout-settings";
 import { useFont } from "@hooks/useFont";
 import { AppearanceSection } from "@components/AppearanceSection";
 import { ExportSection } from "@components/ExportSection";
@@ -17,40 +21,46 @@ import { readSvgSize } from "@app/viewer";
 
 
 const OUTPUT_STATUS_LABELS = {
-  required: "FONT REQUIRED",
+  required: "SVG UNAVAILABLE",
   loading: "LOADING FONT",
-  ready: "FONT READY",
-  error: "LOAD ERROR"
+  ready: "SVG READY",
+  error: "FONT ERROR"
 } as const;
 
 export const App = () => {
   const [text, setText] = useState(DEFAULT_TEXT);
-  const [letterSpacing, setLetterSpacing] = useState(DEFAULT_VERTICAL_OPTIONS.letterSpacing);
-  const [padding, setPadding] = useState(DEFAULT_VERTICAL_OPTIONS.padding);
-  const [fill, setFill] = useState("#000000");
-  const [orientation, setOrientation] = useState<Orientation>("vertical");
+  const [layoutSettingsState, dispatchLayoutSettings] = useReducer(reduceLayoutSettings, INITIAL_LAYOUT_SETTINGS_STATE);
+  const { settings, draftResetVersion } = layoutSettingsState;
+  const { letterSpacing, padding, fill, orientation } = settings;
   const [filename, setFilename] = useState("glyph-export");
   const [feedback, setFeedback] = useState("");
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const { state: fontState, load } = useFont();
 
-  const canonicalSvg = useMemo(() => {
-    try {
-      return createCanonicalSvg(text, fontState.status === "ready" ? fontState.font : null, {
-        letterSpacing,
-        padding,
-        fill,
-        orientation
-      });
-    } catch {
-      return { status: "unavailable" as const, svg: null };
-    }
-  }, [text, fontState, letterSpacing, padding, fill, orientation]);
+  const canonicalSvg = useMemo(() => createCanonicalSvg(
+    text,
+    fontState.status === "ready" ? fontState.font : null,
+    settings
+  ), [text, fontState, settings]);
   const isSvgAvailable = canonicalSvg.status === "ready";
+  const outputStatusLabel = canonicalSvg.status === "unavailable"
+    && canonicalSvg.reason !== "font-required"
+    ? {
+      "empty-text": "EMPTY TEXT",
+      "invalid-fill": "INVALID COLOR",
+      "invalid-layout": "INVALID LAYOUT",
+      "generation-error": "SVG ERROR"
+    }[canonicalSvg.reason]
+    : OUTPUT_STATUS_LABELS[fontState.status];
   const fontAdapter = fontState.status === "ready" ? fontState.font : null;
+  const shouldShowGlyphCells = canonicalSvg.status === "ready" || (
+    canonicalSvg.reason !== "invalid-layout" && canonicalSvg.reason !== "generation-error"
+  );
   const glyphCells = useMemo(
-    () => (fontAdapter ? getLayoutCells(text, fontAdapter, { letterSpacing, padding }, orientation) : []),
-    [text, fontAdapter, letterSpacing, padding, orientation]
+    () => (fontAdapter && shouldShowGlyphCells
+      ? getLayoutCells(text, fontAdapter, { letterSpacing, padding }, orientation)
+      : []),
+    [text, fontAdapter, letterSpacing, padding, orientation, shouldShowGlyphCells]
   );
 
   const outputSize = canonicalSvg.svg ? readSvgSize(canonicalSvg.svg) : null;
@@ -69,7 +79,7 @@ export const App = () => {
 
       return 0;
     });
-  }
+  };
 
   const handleCopy = async () => {
     if (!isSvgAvailable) {
@@ -83,7 +93,7 @@ export const App = () => {
     } catch {
       setFeedback("Copy failed. Clipboard access is unavailable.");
     }
-  }
+  };
 
   const handleExport = () => {
     if (!isSvgAvailable) {
@@ -96,45 +106,32 @@ export const App = () => {
     } catch {
       setFeedback("Export failed.");
     }
-  }
+  };
 
   return (
     <main className="app-shell">
-      <motion.header
-        className="app-heading"
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
-      >
+      <header className="app-heading">
         <div className="brand-lockup">
           <p className="eyebrow">ZTMY TYPE SPECIMEN / LOCAL TOOL</p>
           <h1>GLYPH LAB.</h1>
-          <p className="brand-subtitle">A study of ZUTOMAYO glyph form, outline and measured space.</p>
+          <p className="brand-subtitle">Load the ZTMY_MOJI-R OTF, choose vertical or horizontal layout, adjust spacing and color, and export SVG.</p>
         </div>
         <div className="header-side" aria-label="Specimen identification">
-          <span className="microstructure-mark" aria-hidden="true" />
           <div className="header-meta">
-            <span className="specimen-number">ZTMY / FORM RECORD / 001</span>
+            <span className="specimen-number">ZTMY / FORM RECORD</span>
             <span className="header-notation">LOCAL FIELD NOTE&nbsp;&nbsp;·&nbsp;&nbsp;OTF → SVG</span>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       <div className="workspace">
-        <motion.aside
-          className="control-archive"
-          aria-label="Control archive"
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.03, ease: "easeOut" }}
-        >
+        <aside className="control-archive" aria-label="Controls">
           <div className="archive-heading">
             <span className="archive-mark" aria-hidden="true">+</span>
             <div>
               <p className="eyebrow">PREPARATION LOG</p>
-              <h2>Control archive</h2>
+              <h2>Controls</h2>
             </div>
-            <span className="archive-code">A—01</span>
           </div>
 
           <TextSection text={text} onTextChange={handleTextChange} />
@@ -142,15 +139,22 @@ export const App = () => {
           <FontSection fontState={fontState} onFontLoad={load} />
 
           <LayoutSection
+            key={draftResetVersion}
             orientation={orientation}
-            onOrientationChange={setOrientation}
+            onOrientationChange={(value) => dispatchLayoutSettings({ type: "orientation", value })}
             letterSpacing={letterSpacing}
-            onLetterSpacingChange={setLetterSpacing}
+            onLetterSpacingChange={(value) => dispatchLayoutSettings({ type: "letter-spacing", value })}
             padding={padding}
-            onPaddingChange={setPadding}
+            onPaddingChange={(value) => dispatchLayoutSettings({ type: "padding", value })}
+            onDraftStateChange={(value) => dispatchLayoutSettings({ type: "layout-draft", value })}
           />
 
-          <AppearanceSection fill={fill} onFillChange={setFill} />
+          <AppearanceSection
+            key={`appearance-${draftResetVersion}`}
+            fill={fill}
+            onFillChange={(value) => dispatchLayoutSettings({ type: "fill", value })}
+            onDraftStateChange={(value) => dispatchLayoutSettings({ type: "appearance-draft", value })}
+          />
 
           <ExportSection
             filename={filename}
@@ -160,9 +164,19 @@ export const App = () => {
             onExport={handleExport}
             feedback={feedback}
           />
-        </motion.aside>
+        </aside>
 
-        <PreviewViewer svg={isSvgAvailable ? canonicalSvg.svg : null} orientation={orientation} />
+        <PreviewViewer
+          svg={isSvgAvailable ? canonicalSvg.svg : null}
+          orientation={orientation}
+          canResetSettings={hasResettableLayoutSettings(layoutSettingsState)}
+          onResetSettings={() => dispatchLayoutSettings({ type: "reset" })}
+          emptyStateMessage={canonicalSvg.status === "unavailable"
+            ? canonicalSvg.reason === "font-required"
+              ? "Load the ZTMY_MOJI-R OTF to preview SVG."
+              : getSvgUnavailableMessage(canonicalSvg)
+            : undefined}
+        />
 
         <GlyphInspector
           isFontReady={fontState.status === "ready"}
@@ -174,14 +188,13 @@ export const App = () => {
       </div>
 
       <footer className="status-rail" aria-label="Output status">
-        <p className="status-caption"><span className="registration-dot" aria-hidden="true">＋</span> LIVE / OUTPUT RECORD</p>
+        <p className="status-caption"><span className="registration-dot" aria-hidden="true">＋</span> LIVE SVG OUTPUT</p>
         <dl className="status-values">
-          <div><dt>Status</dt><dd>{OUTPUT_STATUS_LABELS[fontState.status]}</dd></div>
+          <div><dt>Status</dt><dd>{outputStatusLabel}</dd></div>
           <div><dt>Cells</dt><dd>{String(glyphCells.length).padStart(2, "0")}</dd></div>
           <div><dt>UPEM</dt><dd>{fontAdapter ? fontAdapter.unitsPerEm : "—"}</dd></div>
           <div><dt>ViewBox</dt><dd>{outputSize ? outputSize.width + " × " + outputSize.height : "—"}</dd></div>
           <div><dt>Orientation</dt><dd>{orientation}</dd></div>
-          <div><dt>Process</dt><dd>LOCAL</dd></div>
         </dl>
       </footer>
 
@@ -191,4 +204,4 @@ export const App = () => {
       </footer>
     </main>
   );
-}
+};

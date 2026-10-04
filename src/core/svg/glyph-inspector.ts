@@ -31,7 +31,7 @@ export interface GlyphCountSummary {
 
 export const formatUnicodeCodePoint = (codePoint: number): string => {
   return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
-}
+};
 
 export const getLayoutCells = (
   text: string,
@@ -43,7 +43,7 @@ export const getLayoutCells = (
   const layout = orientation === "horizontal" ? createHorizontalLayout(normalized, font, options) : createVerticalLayout(normalized, font, options);
 
   return layout?.glyphs ?? [];
-}
+};
 
 export const summarizeGlyphCells = (cells: readonly LayoutCell[]): GlyphCountSummary => {
   return cells.reduce<GlyphCountSummary>((counts, cell) => {
@@ -57,7 +57,7 @@ export const summarizeGlyphCells = (cells: readonly LayoutCell[]): GlyphCountSum
 
     return counts;
   }, { total: cells.length, mapped: 0, empty: 0, missing: 0 });
-}
+};
 
 export const inspectCell = (
   cell: LayoutCell,
@@ -78,4 +78,4 @@ export const inspectCell = (
     translateY: cell.translateY,
     metadata: getZtmyKanaMetadata(cell.char)
   };
-}
+};

@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { motion } from "motion/react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 
 import {
   beginPointerDrag,
+  applyViewerWheelZoom,
   calculateFitTransform,
   endPointerDrag,
   formatZoomDisplay,
-  INPUT_ARROW_STEP,
+  getViewerKeyboardAction,
   INITIAL_VIEWER_STATE,
   MAX_ZOOM,
   MIN_ZOOM,
@@ -19,6 +19,7 @@ import {
   type ViewerSize,
   type ViewerTransform,
   viewerBoundsLocalStrokeWidth,
+  VIEWER_WHEEL_LISTENER_OPTIONS,
   viewerSurfaceClassName,
   viewerTransformCss
 } from "@app/viewer";
@@ -27,6 +28,9 @@ import {
 interface PreviewViewerProps {
   svg: string | null;
   orientation: "vertical" | "horizontal";
+  emptyStateMessage?: string;
+  canResetSettings?: boolean;
+  onResetSettings?: () => void;
 }
 
 interface SvgStageProps {
@@ -37,7 +41,7 @@ interface SvgStageProps {
   orientation?: "vertical" | "horizontal";
 }
 
-export const SvgStage = ({ svg, documentSize, transform, showBounds, orientation = "vertical" }: SvgStageProps) => {
+export const SvgStage = ({ svg, documentSize, transform, showBounds }: SvgStageProps) => {
   return (
     <div
       className="svg-stage"
@@ -50,44 +54,135 @@ export const SvgStage = ({ svg, documentSize, transform, showBounds, orientation
         transform: viewerTransformCss(transform)
       }}
     >
-      <motion.div
-        key={orientation}
+      <div
         className="canonical-svg"
         data-testid="canonical-svg"
-        initial={{ opacity: 0, y: 2 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18, ease: "easeOut" }}
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       {showBounds && (
-        <motion.div
+        <div
           className="svg-bounds-overlay"
           aria-hidden="true"
           style={{ borderWidth: viewerBoundsLocalStrokeWidth(transform.zoom) + "px" }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
         />
       )}
     </div>
   );
-}
+};
 
-export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
+export const PreviewViewer = ({
+  svg,
+  orientation,
+  emptyStateMessage = "Load the ZTMY_MOJI-R OTF to preview SVG.",
+  canResetSettings = false,
+  onResetSettings = () => { }
+}: PreviewViewerProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const backdropControlRef = useRef<HTMLDivElement>(null);
+  const backdropTriggerRef = useRef<HTMLButtonElement>(null);
+  const backdropOptionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const dragRef = useRef<ReturnType<typeof beginPointerDrag> | null>(null);
+  const wheelZoomRemainder = useRef(0);
   const previousOrientation = useRef(orientation);
   const [interaction, dispatch] = useReducer(reduceViewerInteraction, INITIAL_VIEWER_STATE);
   const [isDragging, setIsDragging] = useState(false);
   const [backdrop, setBackdrop] = useState<Backdrop>("light");
-  const [showGrid, setShowGrid] = useState(false);
+  const [isBackdropOpen, setIsBackdropOpen] = useState(false);
+  const [activeBackdropIndex, setActiveBackdropIndex] = useState(0);
+  const [showGrid, setShowGrid] = useState(true);
   const [showBounds, setShowBounds] = useState(false);
   const [zoomDraft, setZoomDraft] = useState(String(INITIAL_VIEWER_STATE.zoom));
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const documentSize = useMemo(() => svg ? readSvgSize(svg) : null, [svg]);
   const { zoom, panX, panY, fitMode } = interaction;
   const displayedZoom = formatZoomDisplay(zoom, fitMode);
-  const viewerMessage = svg ? "SVG viewBox is unavailable" : "LOAD ZTMY_MOJI-R.otf TO CONTINUE";
+  const zoomValueText = `${parseManualZoomDraft(zoomDraft) ?? displayedZoom} percent`;
+  const hasViewToReset = zoom !== INITIAL_VIEWER_STATE.zoom
+    || panX !== INITIAL_VIEWER_STATE.panX
+    || panY !== INITIAL_VIEWER_STATE.panY
+    || fitMode !== INITIAL_VIEWER_STATE.fitMode
+    || zoomDraft !== displayedZoom;
+  const viewerMessage = svg ? "SVG viewBox is unavailable" : emptyStateMessage;
+  const backdropOptions: Backdrop[] = ["light", "dark"];
+  const selectedBackdropIndex = backdropOptions.indexOf(backdrop);
+
+  useEffect(() => {
+    if (!isBackdropOpen) {
+      return;
+    }
+
+    backdropOptionRefs.current[activeBackdropIndex]?.focus();
+  }, [activeBackdropIndex, isBackdropOpen]);
+
+  useEffect(() => {
+    if (!isBackdropOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!backdropControlRef.current?.contains(event.target as Node)) {
+        setIsBackdropOpen(false);
+      }
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [isBackdropOpen]);
+
+  const openBackdropMenu = (index = selectedBackdropIndex) => {
+    setActiveBackdropIndex(index);
+    setIsBackdropOpen(true);
+  };
+
+  const closeBackdropMenu = (restoreFocus = false) => {
+    setIsBackdropOpen(false);
+
+    if (restoreFocus) {
+      backdropTriggerRef.current?.focus();
+    }
+  };
+
+  const handleBackdropTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    event.preventDefault();
+    openBackdropMenu(selectedBackdropIndex);
+  };
+
+  const handleBackdropOptionKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex = index;
+
+    if (event.key === "ArrowDown") {
+      nextIndex = (index + 1) % backdropOptions.length;
+    } else if (event.key === "ArrowUp") {
+      nextIndex = (index + backdropOptions.length - 1) % backdropOptions.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = backdropOptions.length - 1;
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setBackdrop(backdropOptions[index]);
+      closeBackdropMenu(true);
+      return;
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closeBackdropMenu(true);
+      return;
+    } else if (event.key === "Tab") {
+      closeBackdropMenu();
+      return;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    setActiveBackdropIndex(nextIndex);
+    backdropOptionRefs.current[nextIndex]?.focus();
+  };
 
   const getFitTransform = useCallback(() => {
     if (!documentSize) {
@@ -105,9 +200,28 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
     const transform = getFitTransform();
 
     if (transform) {
+      wheelZoomRemainder.current = 0;
       dispatch({ type: "fit", transform });
     }
   }, [getFitTransform]);
+
+  useLayoutEffect(() => {
+    if (!documentSize) {
+      return;
+    }
+
+    const bounds = viewportRef.current?.getBoundingClientRect();
+    const width = bounds?.width || viewportSize.width;
+    const height = bounds?.height || viewportSize.height;
+    const transform = width && height
+      ? calculateFitTransform(documentSize, { width, height })
+      : null;
+
+    if (transform) {
+      wheelZoomRemainder.current = 0;
+      dispatch({ type: "initial-fit", transform });
+    }
+  }, [documentSize, viewportSize]);
 
   useEffect(() => {
     const element = viewportRef.current;
@@ -128,7 +242,7 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
 
     return () => {
       observer.disconnect();
-    }
+    };
   }, []);
 
   useEffect(() => {
@@ -150,15 +264,50 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
   useEffect(() => {
     if (previousOrientation.current !== orientation) {
       previousOrientation.current = orientation;
+      wheelZoomRemainder.current = 0;
 
       dispatch({ type: "orientation-change" });
     }
   }, [orientation]);
 
-  const handleReset = () => dispatch({ type: "reset" });
-  const handleZoomStep = (direction: -1 | 1) => dispatch({ type: "manual-zoom", direction });
+  useEffect(() => {
+    const element = viewportRef.current;
+
+    if (!element || !svg || !documentSize) {
+      return;
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      const bounds = element.getBoundingClientRect();
+
+      const result = applyViewerWheelZoom(
+        event,
+        { zoom, panX, panY },
+        bounds,
+        dispatch,
+        wheelZoomRemainder.current
+      );
+      wheelZoomRemainder.current = result.remainder;
+    };
+
+    element.addEventListener("wheel", handleWheel, VIEWER_WHEEL_LISTENER_OPTIONS);
+
+    return () => element.removeEventListener("wheel", handleWheel);
+  }, [documentSize, panX, panY, svg, zoom]);
+
+  const handleReset = () => {
+    wheelZoomRemainder.current = 0;
+    dispatch({ type: "reset" });
+    setZoomDraft(formatZoomDisplay(INITIAL_VIEWER_STATE.zoom, INITIAL_VIEWER_STATE.fitMode));
+    onResetSettings();
+  };
+  const handleZoomStep = (direction: -1 | 1) => {
+    wheelZoomRemainder.current = 0;
+    dispatch({ type: "manual-zoom", direction });
+  };
   const handleInputArrow = (direction: -1 | 1) => {
     const nextZoom = stepInputArrowZoom(zoom, direction);
+    wheelZoomRemainder.current = 0;
     dispatch({ type: "manual-zoom-to", zoom: nextZoom });
     setZoomDraft(formatZoomDisplay(nextZoom, false));
   };
@@ -175,6 +324,7 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
       return;
     }
 
+    wheelZoomRemainder.current = 0;
     dispatch({ type: "manual-zoom-to", zoom: nextZoom });
     setZoomDraft(formatZoomDisplay(nextZoom, false));
   };
@@ -188,6 +338,7 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
     }
 
     setZoomDraft(formatZoomDisplay(nextZoom, false));
+    wheelZoomRemainder.current = 0;
     dispatch({ type: "manual-zoom-to", zoom: nextZoom });
   };
 
@@ -206,6 +357,7 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
     }
 
     dragRef.current = beginPointerDrag(event.pointerId, event.clientX, event.clientY);
+    wheelZoomRemainder.current = 0;
     setIsDragging(true);
 
     try {
@@ -231,6 +383,7 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
     }
 
     dragRef.current = movement.drag;
+    wheelZoomRemainder.current = 0;
     dispatch({ type: "pan", deltaX: movement.deltaX, deltaY: movement.deltaY });
   };
 
@@ -256,67 +409,121 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
     }
   };
 
+  const handleViewerKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!svg) {
+      return;
+    }
+
+    if (event.target instanceof HTMLElement && event.target.matches("input, textarea, select, button, [contenteditable='true']")) {
+      return;
+    }
+
+    const action = getViewerKeyboardAction(event.key, event.shiftKey);
+
+    if (action) {
+      event.preventDefault();
+      wheelZoomRemainder.current = 0;
+      dispatch(action);
+    }
+  };
+
   return (
-    <motion.section
+    <section
       className="preview-section"
       aria-labelledby="preview-heading"
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, delay: 0.05, ease: "easeOut" }}
     >
       <div className="preview-toolbar">
         <div className="preview-titleblock">
-          <h2 id="preview-heading">06 / PREVIEW</h2>
-          <p>VECTOR PLATE <span aria-hidden="true">·</span> FIELD 01</p>
+          <h2 id="preview-heading">PREVIEW</h2>
+          <p>SVG PREVIEW</p>
         </div>
-        <div className="viewer-controls" aria-label="Viewer controls" data-fit-mode={fitMode ? "true" : "false"}>
-          <button type="button" aria-label="Zoom out" disabled={zoom <= MIN_ZOOM} onClick={() => handleZoomStep(-1)}>−</button>
-          <div className="zoom-value-control">
-            <label className="sr-only" htmlFor="viewer-zoom">Zoom percentage</label>
-            <div className="zoom-input-control">
-              <input
-                id="viewer-zoom"
-                className="zoom-input"
-                aria-describedby="viewer-zoom-unit"
-                type="number"
-                min={MIN_ZOOM}
-                max={MAX_ZOOM}
-                step={INPUT_ARROW_STEP}
-                inputMode="numeric"
-                value={zoomDraft}
-                onChange={(event) => handleZoomDraftChange(event.currentTarget.value)}
-                onBlur={handleZoomCommit}
-                onKeyDown={handleZoomKeyDown}
-              />
-              <span className="zoom-spinner" aria-hidden="false">
-                <button type="button" aria-label="Increase zoom percentage" disabled={zoom >= MAX_ZOOM} onClick={() => handleInputArrow(1)}>▲</button>
-                <button type="button" aria-label="Decrease zoom percentage" disabled={zoom <= MIN_ZOOM} onClick={() => handleInputArrow(-1)}>▼</button>
-              </span>
-            </div>
-            <span id="viewer-zoom-unit">%</span>
+        <div className="viewer-group viewer-group--zoom" role="group" aria-label="Zoom">
+          <span className="viewer-group-label" aria-hidden="true">ZOOM</span>
+          <div className="zoom-control-set">
+            <button type="button" aria-label="Zoom out" disabled={zoom <= MIN_ZOOM} onClick={() => handleZoomStep(-1)}>−</button>
+            <input
+              id="viewer-zoom"
+              className="zoom-input"
+              aria-label="Zoom level"
+              aria-valuetext={zoomValueText}
+              type="text"
+              inputMode="decimal"
+              value={zoomDraft}
+              onChange={(event) => handleZoomDraftChange(event.currentTarget.value)}
+              onBlur={handleZoomCommit}
+              onKeyDown={handleZoomKeyDown}
+            />
+            <button type="button" aria-label="Zoom in" disabled={zoom >= MAX_ZOOM} onClick={() => handleZoomStep(1)}>+</button>
           </div>
-          <button type="button" aria-label="Zoom in" disabled={zoom >= MAX_ZOOM} onClick={() => handleZoomStep(1)}>+</button>
-          <button type="button" onClick={handleFit}>Fit</button>
-          <button type="button" onClick={handleReset}>Reset</button>
         </div>
-        <div className="viewer-backdrop-control">
-          <label className="viewer-select-label" htmlFor="backdrop">Backdrop</label>
-          <select id="backdrop" value={backdrop} onChange={(event) => setBackdrop(event.currentTarget.value as Backdrop)}>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
+
+        <div className="viewer-group viewer-group--view" role="group" aria-label="View">
+          <span className="viewer-group-label" aria-hidden="true">VIEW</span>
+          <div className="viewer-actions">
+            <button type="button" disabled={!documentSize} onClick={handleFit}>Fit</button>
+            <button type="button" disabled={!hasViewToReset && !canResetSettings} onClick={handleReset}>Reset</button>
+          </div>
         </div>
-        <fieldset className="viewer-options">
-          <legend>View options</legend>
-          <label className="bounds-toggle">
+
+        <div className="viewer-group viewer-group--backdrop">
+          <label className="viewer-select-label" id="backdrop-label" htmlFor="backdrop-trigger">Backdrop</label>
+          <div className="backdrop-control" ref={backdropControlRef}>
+            <button
+              ref={backdropTriggerRef}
+              className="backdrop-trigger"
+              id="backdrop-trigger"
+              type="button"
+              aria-labelledby="backdrop-label backdrop-value"
+              aria-haspopup="listbox"
+              aria-expanded={isBackdropOpen}
+              aria-controls="backdrop-listbox"
+              onClick={() => isBackdropOpen ? closeBackdropMenu() : openBackdropMenu()}
+              onKeyDown={handleBackdropTriggerKeyDown}
+            >
+              <span id="backdrop-value">{backdrop === "light" ? "Light" : "Dark"}</span>
+              <span className="backdrop-chevron" aria-hidden="true" />
+            </button>
+            <div
+              className="backdrop-listbox"
+              id="backdrop-listbox"
+              role="listbox"
+              aria-labelledby="backdrop-label"
+              hidden={!isBackdropOpen}
+            >
+              {backdropOptions.map((option, index) => (
+                <button
+                  key={option}
+                  ref={(element) => { backdropOptionRefs.current[index] = element; }}
+                  className="backdrop-option"
+                  id={`backdrop-option-${option}`}
+                  type="button"
+                  role="option"
+                  aria-selected={backdrop === option}
+                  tabIndex={activeBackdropIndex === index ? 0 : -1}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setBackdrop(option);
+                    closeBackdropMenu(true);
+                  }}
+                  onKeyDown={(event) => handleBackdropOptionKeyDown(event, index)}
+                >
+                  {option === "light" ? "Light" : "Dark"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="viewer-options" role="group" aria-labelledby="viewer-options-label">
+          <span className="viewer-options-label" id="viewer-options-label">View options</span>
+          <label className="bounds-toggle bounds-toggle--grid">
             <input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.currentTarget.checked)} />
             <span>Grid</span>
           </label>
-          <label className="bounds-toggle">
+          <label className="bounds-toggle bounds-toggle--bounds">
             <input type="checkbox" checked={showBounds} onChange={(event) => setShowBounds(event.currentTarget.checked)} />
             <span>Show bounds</span>
           </label>
-        </fieldset>
+        </div>
       </div>
 
       <div
@@ -331,7 +538,12 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
         <div
           ref={viewportRef}
           className="viewer-canvas"
+          role="region"
+          aria-label="SVG preview canvas"
+          aria-describedby="viewer-keyboard-help"
+          tabIndex={0}
           aria-live="polite"
+          onKeyDown={handleViewerKeyDown}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerEnd}
@@ -339,17 +551,12 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
           onPointerLeave={handlePointerLeave}
           onLostPointerCapture={handlePointerEnd}
         >
-          <motion.div
+          <div
             className="viewer-grid"
             aria-hidden="true"
-            initial={false}
-            animate={{ opacity: showGrid ? 1 : 0 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
+            data-visible={showGrid ? "true" : "false"}
           />
-          <div className="plate-annotation" aria-hidden="true">
-            <span>PLATE / 001</span>
-            <span>FORM STUDY&nbsp;&nbsp;·&nbsp;&nbsp;1:1</span>
-          </div>
+          <div className="preview-grid-frame" aria-hidden="true" />
           {svg && documentSize
             ? <SvgStage
               svg={svg}
@@ -365,9 +572,9 @@ export const PreviewViewer = ({ svg, orientation }: PreviewViewerProps) => {
       <div className="viewport-meta" aria-label="Preview information">
         <span><strong>{orientation === "vertical" ? "VERTICAL" : "HORIZONTAL"}</strong><i aria-hidden="true"> / </i>ZOOM {displayedZoom}%</span>
         <span>VIEWBOX {documentSize ? documentSize.width + " × " + documentSize.height : "—"}</span>
-        <span>{svg ? "FONT READY" : "FONT REQUIRED"}</span>
+        <span>{svg ? "SVG READY" : "SVG UNAVAILABLE"}</span>
       </div>
-      <span className="sr-only">{orientation === "vertical" ? "Vertical" : "Horizontal"} SVG preview. Drag to pan.</span>
-    </motion.section>
+      <span id="viewer-keyboard-help" className="sr-only">With the preview focused, use the arrow keys to pan, Shift plus an arrow to pan farther, plus or minus to zoom. Use Fit to fit the SVG and Reset to restore the default view.</span>
+    </section>
   );
-}
+};

@@ -1,17 +1,11 @@
 import type { VerticalLayoutResult } from "@core/svg/vertical-layout";
+import { DEFAULT_LAYOUT_SETTINGS } from "@core/svg/layout-settings";
+import { formatSvgNumber } from "@core/svg/layout-utils";
 
-
-const formatNumber = (value: number): string => {
-  if (Math.abs(value - Math.round(value)) < 0.000001) {
-    return String(Math.round(value));
-  }
-
-  return value.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
-}
 
 export const serializeVerticalSvg = (
   layout: VerticalLayoutResult,
-  fill = "#000000"
+  fill: string = DEFAULT_LAYOUT_SETTINGS.fill
 ): string => {
   if (!/^#[\da-fA-F]{6}$/.test(fill)) {
     throw new TypeError("fill must be a six-digit hex color.");
@@ -20,8 +14,8 @@ export const serializeVerticalSvg = (
   const paths = layout.glyphs
     .filter((item) => item.glyph && !item.glyph.isEmpty && item.glyph.bounds &&
       item.translateX !== null && item.translateY !== null)
-    .map((item) => `  <path d="${item.glyph!.pathData}" transform="translate(${formatNumber(item.translateX!)} ${formatNumber(item.translateY!)}) scale(1 -1)" />`)
+    .map((item) => `  <path d="${item.glyph!.pathData}" transform="translate(${formatSvgNumber(item.translateX!)} ${formatSvgNumber(item.translateY!)}) scale(1 -1)" />`)
     .join("\n");
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${formatNumber(layout.width)} ${formatNumber(layout.height)}">\n  <g fill="${fill}">${paths ? `\n${paths}\n  ` : ""}</g>\n</svg>`;
-}
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${formatSvgNumber(layout.width)} ${formatSvgNumber(layout.height)}">\n  <g fill="${fill}">${paths ? `\n${paths}\n  ` : ""}</g>\n</svg>`;
+};

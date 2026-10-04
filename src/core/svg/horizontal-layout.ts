@@ -1,5 +1,6 @@
 import type { FontAdapter, GlyphData } from "@core/font/font-adapter";
 import type { VerticalLayoutOptions } from "@core/svg/vertical-layout";
+import { validateLayoutDimensions, validateLayoutOptions } from "@core/svg/layout-utils";
 
 
 export interface PositionedHorizontalGlyph {
@@ -24,15 +25,8 @@ export const createHorizontalLayout = (
   font: FontAdapter,
   options: VerticalLayoutOptions
 ): HorizontalLayoutResult | null => {
+  validateLayoutOptions(font.unitsPerEm, options);
   const { letterSpacing, padding } = options;
-
-  if (!Number.isFinite(font.unitsPerEm) || font.unitsPerEm <= 0) {
-    throw new RangeError("unitsPerEm must be a positive finite number.");
-  }
-
-  if (!Number.isFinite(letterSpacing) || !Number.isFinite(padding)) {
-    throw new RangeError("letterSpacing and padding must be finite numbers.");
-  }
 
   const cellSize = font.unitsPerEm;
   const glyphs: PositionedHorizontalGlyph[] = [];
@@ -72,9 +66,7 @@ export const createHorizontalLayout = (
   const width = columnCount * cellSize + Math.max(0, columnCount - 1) * letterSpacing + padding * 2;
   const height = cellSize + padding * 2;
 
-  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) {
-    throw new RangeError("Horizontal layout dimensions must be positive finite numbers.");
-  }
+  validateLayoutDimensions(width, height);
 
   return { width, height, columnCount, cellSize, glyphs };
-}
+};
