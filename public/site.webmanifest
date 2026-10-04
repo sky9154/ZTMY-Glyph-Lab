@@ -1,0 +1,21 @@
+{
+  "name": "ZTMY GLYPH LAB.",
+  "short_name": "ZTMY GLYPH LAB.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eeeae0",
+  "theme_color": "#eeeae0",
+  "icons": [
+    {
+      "src": "./favicon/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./favicon/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
