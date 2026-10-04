@@ -1,5 +1,7 @@
 # ZTMY Glyph Lab
 
+![ZTMY Glyph Lab banner: Compose text, inspect glyphs, export SVG](./docs/images/readme-banner.png)
+
 ZTMY Glyph Lab is a browser-based tool for turning text set in ZUTOMAYO's `ZTMY_MOJI-R` font into SVG. It supports vertical and horizontal layouts, live preview controls, per-glyph inspection, and deterministic SVG export.
 
 ## Required font
