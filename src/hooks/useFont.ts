@@ -31,4 +31,4 @@ export const useFont = () => {
   }, []);
 
   return { state, load };
-}
+};

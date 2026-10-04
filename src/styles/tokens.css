@@ -1,4 +1,5 @@
 :root {
+  font-size: 16px;
   color-scheme: light;
   font-family: "Space Grotesk", "Noto Sans JP", "Noto Sans TC", sans-serif;
 
@@ -29,12 +30,39 @@
   --viewer-grid-major-size: 96px;
 
   --radius-sm: 2px;
-  --radius-md: 3px;
-  --space-1: 0.35rem;
-  --space-2: 0.65rem;
-  --space-3: 1rem;
-  --space-4: 1.5rem;
-  --space-5: 2rem;
+  --radius-md: 4px;
+  --border-control: 2px;
+  --border-strong: 2px;
+  --touch-target: 44px;
+  --control-height: 48px;
+  --control-label-height: 16px;
+  --control-label-gap: 8px;
+  --control-border-width: 2px;
+  --control-border-color: var(--color-line-strong);
+  --control-radius: var(--radius-md);
+  --control-background: var(--color-paper);
+  --control-hover-bg: #e8e6e0;
+  --control-foreground: var(--color-graphite);
+  --control-font: 600 14px/1.2 var(--font-display);
+  --control-padding-inline: 12px;
+  --control-focus-color: var(--color-oxidized-blue);
+  --control-focus-shadow: inset 0 0 0 2px var(--control-focus-color);
+  --size-2: 2px;
+  --size-4: 4px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 44px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --font-size-micro: 12px;
+  --font-size-label: 14px;
+  --font-size-body: 16px;
+  --font-size-heading: 20px;
 
   --font-display: "Space Grotesk", "Noto Sans JP", "Noto Sans TC", sans-serif;
   --font-body: "Noto Sans JP", "Noto Sans TC", "Space Grotesk", sans-serif;

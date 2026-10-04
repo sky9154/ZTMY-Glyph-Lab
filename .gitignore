@@ -2,6 +2,3 @@ dist/
 docs/
 local/
 node_modules/
-
-*.test.ts
-*.test.tsx

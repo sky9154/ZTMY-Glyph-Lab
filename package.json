@@ -1,7 +1,7 @@
 {
   "name": "ztmy-glyph-lab",
   "private": true,
-  "version": "0.1.1",
+  "version": "1.0.0",
   "packageManager": "bun@1.3.14",
   "type": "module",
   "scripts": {
@@ -11,8 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "eslint --fix . && prettier --write \"index.html\" \"src/**/*.css\" \"*.json\"",
+    "format:check": "eslint . && prettier --check \"index.html\" \"src/**/*.css\" \"*.json\"",
     "typecheck": "tsc -b --pretty"
   },
   "dependencies": {

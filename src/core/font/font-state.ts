@@ -28,7 +28,7 @@ export const fontStateReducer = (_state: FontState, action: FontAction): FontSta
     case "reset":
       return initialFontState;
   }
-}
+};
 
 export const createLoadSequence = () => {
   let current = 0;
@@ -42,4 +42,4 @@ export const createLoadSequence = () => {
       return sequence === current;
     }
   };
-}
+};

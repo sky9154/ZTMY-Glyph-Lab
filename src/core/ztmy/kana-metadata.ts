@@ -73,7 +73,7 @@ const rowInfo = (character: string): { row: string; vowel: KanaVowel; romanizati
   }
 
   return null;
-}
+};
 
 export const getZtmyKanaMetadata = (character: string): ZtmyKanaMetadata | null => {
   const full = smallToFull[character] ?? character;
@@ -100,4 +100,4 @@ export const getZtmyKanaMetadata = (character: string): ZtmyKanaMetadata | null 
     isSmallKana,
     conceptualRule: isSmallKana ? "rotate-180" : isVoiced ? "rotate-left-90" : isSemiVoiced ? "rotate-right-90" : "normal"
   };
-}
+};

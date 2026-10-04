@@ -1,10 +1,11 @@
-import { parse as parseOpenType, type Font as OpenTypeFont, type Glyph as OpenTypeGlyph } from "opentype.js";
+import type { Font as OpenTypeFont, Glyph as OpenTypeGlyph } from "opentype.js";
 import {
   createFontLoadError,
   type FontAdapter,
   type GlyphBounds,
   type GlyphData
 } from "@core/font/font-adapter";
+
 
 export const DEFAULT_TEXT = "ずとまよ";
 export const REQUIRED_FONT_FILENAME = "ZTMY_MOJI-R.otf";
@@ -33,7 +34,7 @@ const fingerprintFont: FontFingerprint = async (buffer: ArrayBuffer): Promise<st
   const digest = await subtle.digest("SHA-256", buffer);
 
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
+};
 
 const localizedName = (value: unknown): string | null => {
   if (typeof value === "string" && value.trim()) {
@@ -55,7 +56,7 @@ const localizedName = (value: unknown): string | null => {
   }
 
   return null;
-}
+};
 
 const hasZtmyMetadata = (font: OpenTypeFont): boolean => {
   const names = font.names ?? {};
@@ -66,11 +67,11 @@ const hasZtmyMetadata = (font: OpenTypeFont): boolean => {
     .replace(/[^a-z0-9]/g, "");
 
   return metadata.length === 0 || (metadata.includes("ztmy") && metadata.includes("moji"));
-}
+};
 
 const isValidBounds = (bounds: GlyphBounds): boolean => {
   return Object.values(bounds).every(Number.isFinite);
-}
+};
 
 const hasRequiredGlyphBounds = (adapter: FontAdapter): boolean => {
   return Object.entries(REQUIRED_GLYPH_BOUNDS).every(([character, expected]) => {
@@ -84,7 +85,7 @@ const hasRequiredGlyphBounds = (adapter: FontAdapter): boolean => {
       (key) => Math.abs(glyph.bounds![key] - expected[key]) <= 0.001
     );
   });
-}
+};
 
 const glyphToData = (glyph: OpenTypeGlyph): GlyphData => {
   const pathData = glyph.path.toPathData({
@@ -109,7 +110,7 @@ const glyphToData = (glyph: OpenTypeGlyph): GlyphData => {
     bounds: bounds && isValidBounds(bounds) ? bounds : null,
     isEmpty
   };
-}
+};
 
 export const createOpenTypeAdapter = (font: OpenTypeFont): FontAdapter => {
   const cmap = font.tables?.cmap?.glyphIndexMap;
@@ -147,9 +148,9 @@ export const createOpenTypeAdapter = (font: OpenTypeFont): FontAdapter => {
       } catch {
         return null;
       }
-    },
+    }
   });
-}
+};
 
 const checkFile = (file: File): void => {
   if (!file.name.toLowerCase().endsWith(".otf")) {
@@ -158,21 +159,49 @@ const checkFile = (file: File): void => {
       "Choose an OpenType .otf font file."
     );
   }
-}
+};
 
 export const loadFontFile = async (
   file: File,
-  parse: (buffer: ArrayBuffer) => OpenTypeFont = parseOpenType,
+  parse?: (buffer: ArrayBuffer) => OpenTypeFont,
   fingerprint: FontFingerprint = fingerprintFont
 ): Promise<FontAdapter> => {
   checkFile(file);
 
   let buffer: ArrayBuffer;
-  let parsed: OpenTypeFont;
 
   try {
     buffer = await file.arrayBuffer();
-    parsed = parse(buffer);
+  } catch {
+    throw createFontLoadError(
+      "parse-failed",
+      "The selected font data could not be read."
+    );
+  }
+
+  let actualFingerprint: string;
+
+  try {
+    actualFingerprint = await fingerprint(buffer);
+  } catch {
+    throw createFontLoadError(
+      "verification-unavailable",
+      "This browser could not verify ZTMY_MOJI-R font data."
+    );
+  }
+
+  if (actualFingerprint !== REQUIRED_FONT_SHA256) {
+    throw createFontLoadError(
+      "wrong-font",
+      "The selected file is not the required ZTMY_MOJI-R font data."
+    );
+  }
+
+  let parsed: OpenTypeFont;
+
+  try {
+    const parseFont = parse ?? (await import("opentype.js")).parse;
+    parsed = parseFont(buffer);
   } catch {
     throw createFontLoadError(
       "parse-failed",
@@ -212,23 +241,5 @@ export const loadFontFile = async (
     );
   }
 
-  let actualFingerprint: string;
-
-  try {
-    actualFingerprint = await fingerprint(buffer);
-  } catch {
-    throw createFontLoadError(
-      "verification-unavailable",
-      "This browser could not verify ZTMY_MOJI-R font data."
-    );
-  }
-
-  if (actualFingerprint !== REQUIRED_FONT_SHA256) {
-    throw createFontLoadError(
-      "wrong-font",
-      "The selected file is not the required ZTMY_MOJI-R font data."
-    );
-  }
-
   return adapter;
-}
+};

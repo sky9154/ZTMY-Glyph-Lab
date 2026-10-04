@@ -45,4 +45,4 @@ export const createFontLoadError = (
   }
 
   return error;
-}
+};
