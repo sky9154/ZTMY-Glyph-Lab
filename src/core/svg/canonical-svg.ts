@@ -1,8 +1,7 @@
 import type { FontAdapter } from "@core/font/font-adapter";
 import { createVerticalLayout, type VerticalLayoutOptions } from "@core/svg/vertical-layout";
-import { serializeVerticalSvg } from "@core/svg/vertical-svg";
 import { createHorizontalLayout } from "@core/svg/horizontal-layout";
-import { serializeHorizontalSvg } from "@core/svg/horizontal-svg";
+import { isValidSvgFill, serializeSvg } from "@core/svg/serialize-svg";
 import { LayoutValidationError } from "@core/svg/layout-utils";
 
 
@@ -18,8 +17,6 @@ export type SvgUnavailableReason = "font-required" | "empty-text" | "invalid-fil
 export type SvgDocumentState =
   | { status: "unavailable"; svg: null; reason: SvgUnavailableReason }
   | { status: "ready"; svg: string };
-
-export const isValidSvgFill = (fill: string): boolean => /^#[\da-fA-F]{6}$/.test(fill);
 
 export const getSvgUnavailableMessage = (state: Extract<SvgDocumentState, { status: "unavailable" }>): string => {
   switch (state.reason) {
@@ -54,23 +51,15 @@ export const createCanonicalSvg = (
   }
 
   try {
-    if (options.orientation === "horizontal") {
-      const horizontal = createHorizontalLayout(text, font, options);
-
-      if (!horizontal) {
-        return { status: "unavailable", svg: null, reason: "empty-text" };
-      }
-
-      return { status: "ready", svg: serializeHorizontalSvg(horizontal, options.fill) };
-    }
-
-    const layout = createVerticalLayout(text, font, options);
+    const layout = options.orientation === "horizontal"
+      ? createHorizontalLayout(text, font, options)
+      : createVerticalLayout(text, font, options);
 
     if (!layout) {
       return { status: "unavailable", svg: null, reason: "empty-text" };
     }
 
-    return { status: "ready", svg: serializeVerticalSvg(layout, options.fill) };
+    return { status: "ready", svg: serializeSvg(layout, options.fill) };
   } catch (error) {
     if (error instanceof LayoutValidationError) {
       return { status: "unavailable", svg: null, reason: "invalid-layout" };

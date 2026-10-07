@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FontAdapter, GlyphData } from "@core/font/font-adapter";
 import { createHorizontalLayout } from "@core/svg/horizontal-layout";
-import { serializeHorizontalSvg } from "@core/svg/horizontal-svg";
+import { serializeSvg } from "@core/svg/serialize-svg";
 
 
 const glyph = (id: number, bounds = { xMin: 100, yMin: 200, xMax: 500, yMax: 800 }): GlyphData => ({
@@ -25,7 +25,7 @@ describe("horizontal fixed-cell geometry", () => {
   it("matches the fixed four glyph golden dimensions", () => {
     const layout = createHorizontalLayout("ずとまよ", mockFont(glyphs), defaults)!;
     expect(layout).toMatchObject({ width: 4520, height: 1040, columnCount: 4 });
-    expect(serializeHorizontalSvg(layout)).toContain('viewBox="0 0 4520 1040"');
+    expect(serializeSvg(layout)).toContain('viewBox="0 0 4520 1040"');
   });
 
   it("supports zero/custom/negative spacing and zero/custom padding", () => {
@@ -74,8 +74,8 @@ describe("horizontal text and cell behavior", () => {
 
 describe("horizontal SVG serialization", () => {
   it("is deterministic, path-only, transparent and uses the required transform", () => {
-    const svg = serializeHorizontalSvg(createHorizontalLayout("ず", mockFont({ [cp("ず")]: glyph(1) }), defaults)!);
-    expect(serializeHorizontalSvg(createHorizontalLayout("ず", mockFont({ [cp("ず")]: glyph(1) }), defaults)!)).toBe(svg);
+    const svg = serializeSvg(createHorizontalLayout("ず", mockFont({ [cp("ず")]: glyph(1) }), defaults)!);
+    expect(serializeSvg(createHorizontalLayout("ず", mockFont({ [cp("ず")]: glyph(1) }), defaults)!)).toBe(svg);
     expect(svg).toContain('viewBox="0 0 1040 1040"');
     expect(svg).toContain('transform="translate(220 1020) scale(1 -1)"');
     expect(svg).not.toContain("scale(1 - 1)");

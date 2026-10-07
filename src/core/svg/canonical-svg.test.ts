@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { FontAdapter, GlyphData } from "@core/font/font-adapter";
+import { isValidSvgFill, serializeSvg } from "@core/svg/serialize-svg";
 import {
   copyCanonicalSvg,
   createCanonicalSvg,
   createSvgBlob,
   exportCanonicalSvg,
   getSvgUnavailableMessage,
-  isValidSvgFill,
   sanitizeSvgFilename
 } from "@core/svg/canonical-svg";
 
@@ -72,6 +72,14 @@ describe("canonical SVG document", () => {
     }
   });
 
+  it("rejects unsafe fill during SVG serialization", () => {
+    const layout = { width: 1000, height: 1000, glyphs: [] };
+
+    expect(() => serializeSvg(layout, '"/><script>alert(1)</script>')).toThrow(TypeError);
+    expect(() => serializeSvg(layout, "red")).toThrow(TypeError);
+    expect(serializeSvg(layout, "#aAbBcC")).toContain('<g fill="#aAbBcC"></g>');
+  });
+
   it("keeps unknown generation failures visible and logs the original error", () => {
     const logError = vi.spyOn(console, "error").mockImplementation(() => { });
     const failingFont = { ...font, getGlyph: () => { throw new Error("unexpected adapter failure"); } };
@@ -127,9 +135,9 @@ describe("canonical SVG document", () => {
     await copyCanonicalSvg(svg.svg, { writeText });
 
     expect(writeText).toHaveBeenCalledExactlyOnceWith(svg.svg);
-    const previewSvg = svg.svg;
-    expect(previewSvg).toBe(svg.svg);
-    expect(await createSvgBlob(svg.svg).text()).toBe(previewSvg);
+    const blob = createSvgBlob(svg.svg);
+    expect(await blob.text()).toBe(svg.svg);
+    expect(blob.type).toBe("image/svg+xml;charset=utf-8");
   });
 
   it("safely reports clipboard failure", async () => {
@@ -145,14 +153,6 @@ describe("canonical SVG document", () => {
     expect(sanitizeSvgFilename("test.svg.svg")).toBe("test.svg");
     expect(sanitizeSvgFilename("   ")).toBe("glyph-export.svg");
     expect(sanitizeSvgFilename("<>:\"/\\|?*")).toBe("---------.svg");
-  });
-
-  it("creates an export Blob containing precisely the canonical SVG", async () => {
-    const svg = createCanonicalSvg("ず", font, opts);
-    if (svg.status !== "ready") throw new Error("expected SVG");
-    const blob = createSvgBlob(svg.svg);
-    expect(await blob.text()).toBe(svg.svg);
-    expect(blob.type).toBe("image/svg+xml;charset=utf-8");
   });
 
   it("keeps a document-attached download link until delayed cleanup", () => {

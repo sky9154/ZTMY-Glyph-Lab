@@ -13,22 +13,22 @@ export interface ZtmyKanaMetadata {
   conceptualRule: ConceptualRule;
 }
 
-const rows: Record<string, readonly [string, string, string, string, string]> = {
-  "": ["あいうえお", "アイウエオ", "A", "A I U E O", ""],
-  K: ["かきくけこ", "カキクケコ", "K", "KA KI KU KE KO", ""],
-  S: ["さしすせそ", "サシスセソ", "S", "SA SHI SU SE SO", ""],
-  T: ["たちつてと", "タチツテト", "T", "TA CHI TSU TE TO", ""],
-  N: ["なにぬねの", "ナニヌネノ", "N", "NA NI NU NE NO", ""],
-  H: ["はひふへほ", "ハヒフヘホ", "H", "HA HI FU HE HO", ""],
-  M: ["まみむめも", "マミムメモ", "M", "MA MI MU ME MO", ""],
-  Y: ["や ゆ よ", "ヤ ユ ヨ", "Y", "YA  YU  YO", ""],
-  R: ["らりるれろ", "ラリルレロ", "R", "RA RI RU RE RO", ""],
-  W: ["わ ゐ ゑ を", "ワ ヰ ヱ ヲ", "W", "WA WI WE WO", ""],
-  G: ["がぎぐげご", "ガギグゲゴ", "G", "GA GI GU GE GO", "かきくけこ"],
-  Z: ["ざじずぜぞ", "ザジズゼゾ", "Z", "ZA JI ZU ZE ZO", "さしすせそ"],
-  D: ["だぢづでど", "ダヂヅデド", "D", "DA JI ZU DE DO", "たちつてと"],
-  B: ["ばびぶべぼ", "バビブベボ", "B", "BA BI BU BE BO", "はひふへほ"],
-  P: ["ぱぴぷぺぽ", "パピプペポ", "P", "PA PI PU PE PO", "はひふへほ"]
+const rows: Record<string, readonly [string, string, string]> = {
+  "": ["あいうえお", "アイウエオ", "A I U E O"],
+  K: ["かきくけこ", "カキクケコ", "KA KI KU KE KO"],
+  S: ["さしすせそ", "サシスセソ", "SA SHI SU SE SO"],
+  T: ["たちつてと", "タチツテト", "TA CHI TSU TE TO"],
+  N: ["なにぬねの", "ナニヌネノ", "NA NI NU NE NO"],
+  H: ["はひふへほ", "ハヒフヘホ", "HA HI FU HE HO"],
+  M: ["まみむめも", "マミムメモ", "MA MI MU ME MO"],
+  Y: ["や ゆ よ", "ヤ ユ ヨ", "YA  YU  YO"],
+  R: ["らりるれろ", "ラリルレロ", "RA RI RU RE RO"],
+  W: ["わ ゐ ゑ を", "ワ ヰ ヱ ヲ", "WA WI WE WO"],
+  G: ["がぎぐげご", "ガギグゲゴ", "GA GI GU GE GO"],
+  Z: ["ざじずぜぞ", "ザジズゼゾ", "ZA JI ZU ZE ZO"],
+  D: ["だぢづでど", "ダヂヅデド", "DA JI ZU DE DO"],
+  B: ["ばびぶべぼ", "バビブベボ", "BA BI BU BE BO"],
+  P: ["ぱぴぷぺぽ", "パピプペポ", "PA PI PU PE PO"]
 };
 
 const smallToFull: Record<string, string> = {
@@ -44,10 +44,10 @@ const modifiedRomanization: Record<string, string> = {
 };
 
 const rowInfo = (character: string): { row: string; vowel: KanaVowel; romanization: string } | null => {
-  const nfd = character.normalize("NFD");
+  const nfd = [...character.normalize("NFD")];
 
-  if ([...nfd].length === 2 && ["\u3099", "\u309A"].includes([...nfd][1])) {
-    const base = [...nfd][0].normalize("NFC");
+  if (nfd.length === 2 && ["\u3099", "\u309A"].includes(nfd[1])) {
+    const base = nfd[0];
     const info = rowInfo(base);
 
     if (info) {
@@ -55,7 +55,7 @@ const rowInfo = (character: string): { row: string; vowel: KanaVowel; romanizati
     }
   }
 
-  for (const [row, [hira, kata, , roman]] of Object.entries(rows)) {
+  for (const [row, [hira, kata, roman]] of Object.entries(rows)) {
     const chars = character >= "ァ" && character <= "ヺ" ? kata : hira;
     const index = chars.indexOf(character);
 
@@ -83,11 +83,11 @@ export const getZtmyKanaMetadata = (character: string): ZtmyKanaMetadata | null 
     return null;
   }
 
-  const decomposed = character.normalize("NFD");
-  const isVoiced = [...decomposed].some((part) => part === "\u3099");
-  const isSemiVoiced = [...decomposed].some((part) => part === "\u309A");
+  const decomposed = [...character.normalize("NFD")];
+  const isVoiced = decomposed.includes("\u3099");
+  const isSemiVoiced = decomposed.includes("\u309A");
   const isSmallKana = character in smallToFull;
-  const baseKana = isSmallKana ? full : isVoiced || isSemiVoiced ? [...decomposed][0].normalize("NFC") : character;
+  const baseKana = isSmallKana ? full : isVoiced || isSemiVoiced ? decomposed[0] : character;
 
   return {
     character,

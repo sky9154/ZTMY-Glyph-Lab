@@ -36,12 +36,13 @@ export const App = () => {
   const [feedback, setFeedback] = useState("");
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const { state: fontState, load } = useFont();
+  const fontAdapter = fontState.status === "ready" ? fontState.font : null;
 
   const canonicalSvg = useMemo(() => createCanonicalSvg(
     text,
-    fontState.status === "ready" ? fontState.font : null,
+    fontAdapter,
     settings
-  ), [text, fontState, settings]);
+  ), [text, fontAdapter, settings]);
   const isSvgAvailable = canonicalSvg.status === "ready";
   const outputStatusLabel = canonicalSvg.status === "unavailable"
     && canonicalSvg.reason !== "font-required"
@@ -52,7 +53,6 @@ export const App = () => {
       "generation-error": "SVG ERROR"
     }[canonicalSvg.reason]
     : OUTPUT_STATUS_LABELS[fontState.status];
-  const fontAdapter = fontState.status === "ready" ? fontState.font : null;
   const shouldShowGlyphCells = canonicalSvg.status === "ready" || (
     canonicalSvg.reason !== "invalid-layout" && canonicalSvg.reason !== "generation-error"
   );
@@ -73,11 +73,7 @@ export const App = () => {
         return null;
       }
 
-      if (current < nextCellCount) {
-        return current;
-      }
-
-      return 0;
+      return current < nextCellCount ? current : 0;
     });
   };
 

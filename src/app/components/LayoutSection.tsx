@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 
-import { getMeasurementError } from "@components/measurement-validation";
+import { getMeasurementError, LETTER_SPACING_LIMITS, PADDING_LIMITS } from "@components/measurement-validation";
 import type { Orientation } from "@core/svg/canonical-svg";
 
 
@@ -25,8 +25,8 @@ export const LayoutSection = ({
 }: LayoutSectionProps) => {
   const [letterSpacingDraft, setLetterSpacingDraft] = useState(String(letterSpacing));
   const [paddingDraft, setPaddingDraft] = useState(String(padding));
-  const letterSpacingError = getMeasurementError(letterSpacingDraft, -500, 2000, 10);
-  const paddingError = getMeasurementError(paddingDraft, 0, 300, 1);
+  const letterSpacingError = getMeasurementError(letterSpacingDraft, LETTER_SPACING_LIMITS.min, LETTER_SPACING_LIMITS.max, LETTER_SPACING_LIMITS.step);
+  const paddingError = getMeasurementError(paddingDraft, PADDING_LIMITS.min, PADDING_LIMITS.max, PADDING_LIMITS.step);
 
   const reportDraftState = (
     nextLetterSpacingDraft = letterSpacingDraft,
@@ -35,9 +35,9 @@ export const LayoutSection = ({
     nextPadding = padding
   ) => {
     const hasLetterSpacingDraft = nextLetterSpacingDraft !== String(nextLetterSpacing)
-      || getMeasurementError(nextLetterSpacingDraft, -500, 2000, 10) !== null;
+      || getMeasurementError(nextLetterSpacingDraft, LETTER_SPACING_LIMITS.min, LETTER_SPACING_LIMITS.max, LETTER_SPACING_LIMITS.step) !== null;
     const hasPaddingDraft = nextPaddingDraft !== String(nextPadding)
-      || getMeasurementError(nextPaddingDraft, 0, 300, 1) !== null;
+      || getMeasurementError(nextPaddingDraft, PADDING_LIMITS.min, PADDING_LIMITS.max, PADDING_LIMITS.step) !== null;
 
     onDraftStateChange(hasLetterSpacingDraft || hasPaddingDraft);
   };
@@ -106,9 +106,9 @@ export const LayoutSection = ({
           <input
             id="letter-spacing"
             type="range"
-            min="-500"
-            max="2000"
-            step="10"
+            min={LETTER_SPACING_LIMITS.min}
+            max={LETTER_SPACING_LIMITS.max}
+            step={LETTER_SPACING_LIMITS.step}
             value={letterSpacing}
             onChange={(event) => {
               const value = event.currentTarget.value;
@@ -125,9 +125,9 @@ export const LayoutSection = ({
               aria-invalid={letterSpacingError !== null}
               aria-describedby={letterSpacingError ? "letter-spacing-error" : undefined}
               type="number"
-              min="-500"
-              max="2000"
-              step="10"
+              min={LETTER_SPACING_LIMITS.min}
+              max={LETTER_SPACING_LIMITS.max}
+              step={LETTER_SPACING_LIMITS.step}
               value={letterSpacingDraft}
               onChange={(event) => {
                 const value = event.currentTarget.value;
@@ -149,9 +149,9 @@ export const LayoutSection = ({
           <input
             id="padding"
             type="range"
-            min="0"
-            max="300"
-            step="1"
+            min={PADDING_LIMITS.min}
+            max={PADDING_LIMITS.max}
+            step={PADDING_LIMITS.step}
             value={padding}
             onChange={(event) => {
               const value = event.currentTarget.value;
@@ -168,9 +168,9 @@ export const LayoutSection = ({
               aria-invalid={paddingError !== null}
               aria-describedby={paddingError ? "padding-error" : undefined}
               type="number"
-              min="0"
-              max="300"
-              step="1"
+              min={PADDING_LIMITS.min}
+              max={PADDING_LIMITS.max}
+              step={PADDING_LIMITS.step}
               value={paddingDraft}
               onChange={(event) => {
                 const value = event.currentTarget.value;

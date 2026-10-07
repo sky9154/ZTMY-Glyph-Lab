@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FontAdapter, GlyphData } from "@core/font/font-adapter";
 import { createHorizontalLayout } from "@core/svg/horizontal-layout";
-import { serializeHorizontalSvg } from "@core/svg/horizontal-svg";
+import { serializeSvg } from "@core/svg/serialize-svg";
 import { createVerticalLayout } from "@core/svg/vertical-layout";
 import { PreviewViewer, SvgStage } from "@app/PreviewViewer";
 import {
@@ -233,8 +233,8 @@ describe("viewer geometry", () => {
   });
 
   it("fits updated document dimensions so larger padding remains in view", () => {
-    const beforeSvg = serializeHorizontalSvg(createHorizontalLayout("ずと", testFont, { letterSpacing: 100, padding: 10 })!);
-    const afterSvg = serializeHorizontalSvg(createHorizontalLayout("ずと", testFont, { letterSpacing: 100, padding: 40 })!);
+    const beforeSvg = serializeSvg(createHorizontalLayout("ずと", testFont, { letterSpacing: 100, padding: 10 })!);
+    const afterSvg = serializeSvg(createHorizontalLayout("ずと", testFont, { letterSpacing: 100, padding: 40 })!);
     const beforePadding = readSvgSize(beforeSvg)!;
     const afterPadding = readSvgSize(afterSvg)!;
     const beforeFit = calculateFitZoom(beforePadding, { width: 500, height: 300 });

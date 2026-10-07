@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FontAdapter, GlyphData } from "@core/font/font-adapter";
 import { createVerticalLayout, DEFAULT_VERTICAL_OPTIONS } from "@core/svg/vertical-layout";
-import { serializeVerticalSvg } from "@core/svg/vertical-svg";
+import { serializeSvg } from "@core/svg/serialize-svg";
 
 
 const glyph = (id: number, bounds = { xMin: 100, yMin: 200, xMax: 500, yMax: 800 }): GlyphData => ({
@@ -29,7 +29,7 @@ describe("vertical fixed-cell geometry", () => {
     const result = createVerticalLayout("ずとまよ", font)!;
 
     expect(result).toMatchObject({ width: 1040, height: 4520, rowCount: 4 });
-    expect(serializeVerticalSvg(result)).toContain('viewBox="0 0 1040 4520"');
+    expect(serializeSvg(result)).toContain('viewBox="0 0 1040 4520"');
   });
 
   it("keeps the 15-cell UPEM 1000 / spacing 40 / padding 0 vertical viewBox", () => {
@@ -41,7 +41,7 @@ describe("vertical fixed-cell geometry", () => {
     expect(result).toMatchObject({ width: 1000, height: 15560, rowCount: 15 });
     expect(result.glyphs[8]?.glyph).toMatchObject({ isEmpty: true });
     expect(result.glyphs[13]?.glyph).toBeNull();
-    expect(serializeVerticalSvg(result)).toContain('viewBox="0 0 1000 15560"');
+    expect(serializeSvg(result)).toContain('viewBox="0 0 1000 15560"');
   });
 
   it("computes one and two glyph dimensions and standard placement", () => {
@@ -103,8 +103,8 @@ describe("vertical text cell behavior", () => {
     expect(result.rowCount).toBe(3);
     expect(result.glyphs[1]).toMatchObject({ codePoint: 0x10000, char: "𐀀", glyph: null, translateX: null });
     expect(result.glyphs[2]).toMatchObject({ rowIndex: 2, translateY: 3340 });
-    expect(serializeVerticalSvg(result)).not.toContain("Mundefined");
-    expect(serializeVerticalSvg(result)).toContain("M2 0L2 10Z");
+    expect(serializeSvg(result)).not.toContain("Mundefined");
+    expect(serializeSvg(result)).toContain("M2 0L2 10Z");
   });
 
   it("reserves a cell for a mapped empty glyph while distinguishing it from missing", () => {
@@ -123,8 +123,8 @@ describe("vertical text cell behavior", () => {
 describe("vertical SVG serialization", () => {
   it("emits transparent path-only SVG with Python-compatible transforms deterministically", () => {
     const layout = createVerticalLayout("ず", mockFont({ [cp("ず")]: glyph(1) }), DEFAULT_VERTICAL_OPTIONS)!;
-    const svg = serializeVerticalSvg(layout);
-    expect(svg).toBe(serializeVerticalSvg(layout));
+    const svg = serializeSvg(layout);
+    expect(svg).toBe(serializeSvg(layout));
     expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 1040">');
     expect(svg).toContain('transform="translate(220 1020) scale(1 -1)"');
     expect(svg).not.toContain("scale(1 - 1)");
@@ -138,7 +138,7 @@ describe("vertical SVG serialization", () => {
   it("omits missing and empty outlines from SVG paths", () => {
     const empty: GlyphData = { glyphId: 9, pathData: "", bounds: null, isEmpty: true };
     const layout = createVerticalLayout("ず と", mockFont({ [cp("ず")]: glyph(1), [cp(" ")]: empty }))!;
-    const svg = serializeVerticalSvg(layout);
+    const svg = serializeSvg(layout);
     expect(svg.match(/<path\b/g)).toHaveLength(1);
   });
 });

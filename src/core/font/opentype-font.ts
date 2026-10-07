@@ -152,21 +152,17 @@ export const createOpenTypeAdapter = (font: OpenTypeFont): FontAdapter => {
   });
 };
 
-const checkFile = (file: File): void => {
+export const loadFontFile = async (
+  file: File,
+  parse?: (buffer: ArrayBuffer) => OpenTypeFont,
+  fingerprint: FontFingerprint = fingerprintFont
+): Promise<FontAdapter> => {
   if (!file.name.toLowerCase().endsWith(".otf")) {
     throw createFontLoadError(
       "wrong-file",
       "Choose an OpenType .otf font file."
     );
   }
-};
-
-export const loadFontFile = async (
-  file: File,
-  parse?: (buffer: ArrayBuffer) => OpenTypeFont,
-  fingerprint: FontFingerprint = fingerprintFont
-): Promise<FontAdapter> => {
-  checkFile(file);
 
   let buffer: ArrayBuffer;
 

@@ -181,7 +181,6 @@ export const PreviewViewer = ({
 
     event.preventDefault();
     setActiveBackdropIndex(nextIndex);
-    backdropOptionRefs.current[nextIndex]?.focus();
   };
 
   const getFitTransform = useCallback(() => {
@@ -193,7 +192,7 @@ export const PreviewViewer = ({
     const width = bounds?.width || viewportSize.width;
     const height = bounds?.height || viewportSize.height;
 
-    return calculateFitTransform(documentSize, { width, height });
+    return width && height ? calculateFitTransform(documentSize, { width, height }) : null;
   }, [documentSize, viewportSize]);
 
   const handleFit = useCallback(() => {
@@ -206,22 +205,13 @@ export const PreviewViewer = ({
   }, [getFitTransform]);
 
   useLayoutEffect(() => {
-    if (!documentSize) {
-      return;
-    }
-
-    const bounds = viewportRef.current?.getBoundingClientRect();
-    const width = bounds?.width || viewportSize.width;
-    const height = bounds?.height || viewportSize.height;
-    const transform = width && height
-      ? calculateFitTransform(documentSize, { width, height })
-      : null;
+    const transform = getFitTransform();
 
     if (transform) {
       wheelZoomRemainder.current = 0;
       dispatch({ type: "initial-fit", transform });
     }
-  }, [documentSize, viewportSize]);
+  }, [getFitTransform]);
 
   useEffect(() => {
     const element = viewportRef.current;

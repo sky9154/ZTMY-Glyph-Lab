@@ -1,6 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 
-import { isValidSvgFill } from "@core/svg/canonical-svg";
+import { isValidSvgFill } from "@core/svg/serialize-svg";
 
 
 interface AppearanceSectionProps {

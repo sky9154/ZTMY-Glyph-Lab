@@ -39,8 +39,7 @@ export const getLayoutCells = (
   options: VerticalLayoutOptions,
   orientation: Orientation
 ): LayoutCell[] => {
-  const normalized = text.normalize("NFC");
-  const layout = orientation === "horizontal" ? createHorizontalLayout(normalized, font, options) : createVerticalLayout(normalized, font, options);
+  const layout = orientation === "horizontal" ? createHorizontalLayout(text, font, options) : createVerticalLayout(text, font, options);
 
   return layout?.glyphs ?? [];
 };
